@@ -24,8 +24,30 @@ This project demonstrates reading temperature and humidity from a **DHT22 (AM230
 
 - [DHT sensor library by Adafruit](https://github.com/adafruit/DHT-sensor-library)
 - [Adafruit Unified Sensor](https://github.com/adafruit/Adafruit_Sensor)
+- WiFi.h (built-in)
+- HTTPClient.h (built-in)
+- time.h (built-in)
 
-> Install via **Arduino IDE → Tools → Manage Libraries…**
+> Install via **Arduino IDE → Tools → Manage Libraries…** if missing.
+
+## ⚡ Features
+
+- Reads temperature and humidity from DHT22 sensor.
+- Sends JSON payload to server **POST /api/v1/measurements**:
+    ```json
+    {
+      "temperature": 23.5,
+      "humidity": 60,
+       "timestamp": "2025-11-11T15:45:00Z"
+    }
+    ```
+- Easy to extend for multiple ESP32 sensors.
+
+### 🔧 Setup
+
+1. Copy secrets.template.h to `secrets.h` and fill in your credentials:
+2. Install the required libraries via Arduino IDE.
+3. Upload the sketch to your ESP32-C6-Zero.
 
 ### ⚡ Notes
 

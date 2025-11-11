@@ -1,0 +1,38 @@
+# sensor-stream-sensor-node
+
+This project demonstrates reading temperature and humidity from a **DHT22 (AM2302)** sensor using the **ESP32-C6-Zero** board and send data to web server.
+
+---
+
+## 📦 Components
+
+- ESP32-C6-Zero
+- DHT22 (AM2302)
+- 4.7-10 kΩ resistor (for pull-up on DATA)
+- Jumper wires or breadboard
+
+---
+
+## 🔌 Wiring
+
+![wiring.png](wiring.png)
+- 3.3V --> VCC DHT22
+- GND --> GND DHT22
+- GPIO4 --> DATA DHT22 (through 4.7-10kΩ resistor to 3.3V)
+
+## 📚 Libraries Used
+
+- [DHT sensor library by Adafruit](https://github.com/adafruit/DHT-sensor-library)
+- [Adafruit Unified Sensor](https://github.com/adafruit/Adafruit_Sensor)
+
+> Install via **Arduino IDE → Tools → Manage Libraries…**
+
+### ⚡ Notes
+
+- Ensure the pull-up resistor is installed between DATA and VCC; otherwise, readings may fail.
+- If nothing appears in the Serial Monitor:
+  - Check the correct COM port
+  - Select board: ESP32C6 Dev Module
+  - Press RST on the board
+  - Ensure baud rate = 115200
+  - Ensure "USB CDC On Boot" is set to 'Enabled' in Arduino IDE

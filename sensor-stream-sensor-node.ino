@@ -3,6 +3,7 @@
 #include <HTTPClient.h>
 #include "secrets.h"
 #include <time.h>
+#include <SPIFFS.h>
 
 #define DHTPIN 4
 #define DHTTYPE DHT22
@@ -41,14 +42,70 @@ void connectToWiFi() {
   Serial.println();
   Serial.print("Connected! IP: ");
   Serial.println(WiFi.localIP());
+}
 
-  deviceId = WiFi.macAddress();
-  Serial.print("Device MAC: ");
-  Serial.println(deviceId);
+bool readDeviceIdFromFS() {
+  if(!SPIFFS.begin(true)) {
+    Serial.println("Failed to mount SPIFFS");
+    return false;
+  }
+  if(SPIFFS.exists("/device_id.txt")) {
+    File f = SPIFFS.open("/device_id.txt", "r");
+    if(f){
+      deviceId = f.readString();
+      f.close();
+      Serial.print("Loaded device_id from SPIFFS: ");
+      Serial.println(deviceId);
+      return true;
+    }
+  }
+  return false;
+}
+
+void saveDeviceIdToFS(const String& id) {
+  File f = SPIFFS.open("/device_id.txt", "w");
+  if(f){
+    f.print(id);
+    f.close();
+    Serial.println("Saved device_id to SPIFFS");
+  }
+}
+
+bool registerDevice(String mac_address) {
+  HTTPClient http;
+  http.begin(String(SERVER_URL) + "/api/v1/devices");
+  http.addHeader("Content-Type", "application/json");
+
+  String payload = "{\"mac\":\"" + mac_address + "\"}";
+
+  int httpResponseCode = http.POST(payload);
+
+  if(httpResponseCode > 0){
+    String response = http.getString();
+    Serial.print("Register response: ");
+    Serial.println(response);
+
+    int start = response.indexOf("\"id\":\"") + 13;
+    int end = response.indexOf("\"", start);
+
+    if(start >= 13 && end > start){
+      deviceId = response.substring(start, end);
+      saveDeviceIdToFS(deviceId);
+
+      http.end();
+      return true;
+    }
+  } else {
+    Serial.print("Failed to register device. HTTP response code: ");
+    Serial.println(httpResponseCode);
+  }
+
+  http.end();
+  return false;
 }
 
 void sendData(float temperature, float humidity) {
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED && deviceId.length() > 0) {
     HTTPClient http;
     http.begin(String(SERVER_URL) + "/api/v1/measurements");
     http.addHeader("Content-Type", "application/json");
@@ -57,7 +114,7 @@ void sendData(float temperature, float humidity) {
 
     String payload = "{\"device_id\":\"" + deviceId + "\"" +
                      ",\"temperature\":" + String(temperature, 2) +
-                     ",\"humidity\":" + String(humidity, 2) + 
+                     ",\"humidity\":" + String(humidity, 2) +
                      ",\"timestamp\":\"" + timestamp + "\"}";
 
     int httpResponseCode = http.POST(payload);
@@ -72,7 +129,7 @@ void sendData(float temperature, float humidity) {
 
     http.end();
   } else {
-    Serial.println("Wi-Fi not connected");
+    Serial.println("Wi-Fi not connected or device_id empty");
   }
 }
 
@@ -80,8 +137,16 @@ void setup() {
   Serial.begin(115200);
   Serial.println("ESP32 start!");
   dht.begin();
+
   connectToWiFi();
   setupTime();
+
+  if(!readDeviceIdFromFS()){
+    Serial.println("Device ID not found, registering...");
+    if(!registerDevice(WiFi.macAddress())){
+      Serial.println("Failed to register device. Retry after restart.");
+    }
+  }
 }
 
 unsigned long lastSendTime = 0;

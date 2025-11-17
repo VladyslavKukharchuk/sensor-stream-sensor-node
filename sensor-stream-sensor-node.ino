@@ -12,6 +12,8 @@ const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 7200; // UTC+2
 const int daylightOffset_sec = 0;
 
+String deviceId;
+
 void setupTime() {
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
@@ -39,6 +41,10 @@ void connectToWiFi() {
   Serial.println();
   Serial.print("Connected! IP: ");
   Serial.println(WiFi.localIP());
+
+  deviceId = WiFi.macAddress();
+  Serial.print("Device MAC: ");
+  Serial.println(deviceId);
 }
 
 void sendData(float temperature, float humidity) {
@@ -49,7 +55,8 @@ void sendData(float temperature, float humidity) {
 
     String timestamp = getTimestamp();
 
-    String payload = "{\"temperature\":" + String(temperature, 2) + 
+    String payload = "{\"device_id\":\"" + deviceId + "\"" +
+                     ",\"temperature\":" + String(temperature, 2) +
                      ",\"humidity\":" + String(humidity, 2) + 
                      ",\"timestamp\":\"" + timestamp + "\"}";
 

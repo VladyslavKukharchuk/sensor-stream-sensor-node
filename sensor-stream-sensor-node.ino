@@ -77,21 +77,27 @@ void setup() {
   setupTime();
 }
 
+unsigned long lastSendTime = 0;
+
 void loop() {
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
+  unsigned long now = millis();
 
-  if (isnan(h) || isnan(t)) {
-    Serial.println("Error read from DHT22!");
-  } else {
-    Serial.print("Humidity: ");
-    Serial.print(h);
-    Serial.print("%  |  Temperature: ");
-    Serial.print(t);
-    Serial.println("°C");
+  if (now - lastSendTime >= SEND_INTERVAL_SEC * 1000UL) {
+    lastSendTime = now;
 
-    sendData(t, h);
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+
+    if (isnan(h) || isnan(t)) {
+      Serial.println("Error read from DHT22!");
+    } else {
+      Serial.print("Humidity: ");
+      Serial.print(h);
+      Serial.print("%  |  Temperature: ");
+      Serial.print(t);
+      Serial.println("°C");
+
+      sendData(t, h);
+    }
   }
-
-  delay(2000);
 }

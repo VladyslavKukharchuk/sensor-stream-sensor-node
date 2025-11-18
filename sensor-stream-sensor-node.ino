@@ -4,6 +4,7 @@
 #include "secrets.h"
 #include <time.h>
 #include <SPIFFS.h>
+#include <ArduinoJson.h>
 
 #define DHTPIN 4
 #define DHTTYPE DHT22
@@ -80,20 +81,29 @@ bool registerDevice(String mac_address) {
 
   int httpResponseCode = http.POST(payload);
 
-  if(httpResponseCode > 0){
+  if (httpResponseCode > 0) {
     String response = http.getString();
     Serial.print("Register response: ");
     Serial.println(response);
 
-    int start = response.indexOf("\"id\":\"") + 13;
-    int end = response.indexOf("\"", start);
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, response);
 
-    if(start >= 13 && end > start){
-      deviceId = response.substring(start, end);
+    if (error) {
+      Serial.print("JSON parse error: ");
+      Serial.println(error.c_str());
+      http.end();
+      return false;
+    }
+
+    if (doc.containsKey("id")) {
+      deviceId = doc["id"].as<String>();
       saveDeviceIdToFS(deviceId);
 
       http.end();
       return true;
+    } else {
+      Serial.println("No 'id' field in response");
     }
   } else {
     Serial.print("Failed to register device. HTTP response code: ");
@@ -112,10 +122,15 @@ void sendData(float temperature, float humidity) {
 
     String timestamp = getTimestamp();
 
-    String payload = "{\"device_id\":\"" + deviceId + "\"" +
-                     ",\"temperature\":" + String(temperature, 2) +
-                     ",\"humidity\":" + String(humidity, 2) +
-                     ",\"timestamp\":\"" + timestamp + "\"}";
+    StaticJsonDocument<200> doc;
+
+    doc["device_id"] = deviceId;
+    doc["temperature"] = temperature;
+    doc["humidity"] = humidity;
+    doc["timestamp"] = timestamp;
+
+    String payload;
+    serializeJson(doc, payload);
 
     int httpResponseCode = http.POST(payload);
 
